@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Zombie Survival</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+
+        .survivors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .survivor {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .stats span {
+            display: block;
+            margin: 5px 0;
+        }
+
+        .event {
+            background: #444;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .actions {
+            display: grid;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .dead {
+            background: #5a0000 !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>День: <span id="day">0</span></h1>
+    <div class="survivors" id="survivors"></div>
+    <div class="event" id="event"></div>
+    <div class="actions" id="actions"></div>
+
+    <script>
+        class Survivor {
+            constructor(name) {
+                this.name = name;
+                this.health = 100;
+                this.stamina = 100;
+                this.hunger = 0;
+                this.alive = true;
+            }
+        }
+
+        const survivors = [
+            new Survivor('Анна'),
+            new Survivor('Борис'),
+            new Survivor('Виктор'),
+            new Survivor('Дарья')
+        ];
+
+        let day = 0;
+        const events = [
+            {
+                description: 'Вы нашли склад с провизией!',
+                actions: [
+                    { text: 'Взять еду', effect: s => { s.hunger -= 30; s.stamina += 10; }},
+                    { text: 'Взять медикаменты', effect: s => { s.health += 20; s.stamina -= 15; }}
+                ]
+            },
+            {
+                description: 'Группа зомби атакует лагерь!',
+                actions: [
+                    { text: 'Сражаться', effect: s => { s.health -= 25; s.stamina -= 30; }},
+                    { text: 'Сбежать', effect: s => { s.stamina -= 40; s.hunger += 20; }}
+                ]
+            },
+            {
+                description: 'Найдена бронированная машина',
+                actions: [
+                    { text: 'Исследовать', effect: s => { s.stamina -= 20; s.health += 10; }},
+                    { text: 'Проигнорировать', effect: s => { s.hunger += 10; }}
+                ]
+            },
+            {
+  description: 'Вы нашли ручей, но вода выглядит подозрительно',
+  actions: [
+    { text: 'Пить воду', effect: s => { s.health -= 15; s.hunger -= 10; }},
+    { text: 'Искать другой источник', effect: s => { s.stamina -= 20; s.hunger += 10; }}
+  ]
+},
+{
+  description: 'Зомби прорвались через баррикады ночью!',
+  actions: [
+    { text: 'Сражаться в темноте', effect: s => { s.health -= 35; s.stamina -= 25; }},
+    { text: 'Отступать с фонарями', effect: s => { s.stamina -= 35; s.hunger += 15; }}
+  ]
+},
+{
+  description: 'Обнаружена аптечка в опасном здании',
+  actions: [
+    { text: 'Рискнуть забрать', effect: s => { s.health += 25; s.stamina -= 30; }},
+    { text: 'Оставить из-за риска', effect: s => { s.hunger += 15; }}
+  ]
+},
+{
+  description: 'Группа мародеров угрожает забрать ваши припасы',
+  actions: [
+    { text: 'Отдать часть еды', effect: s => { s.hunger += 25; s.health += 10; }},
+    { text: 'Защищать запасы', effect: s => { s.health -= 20; s.stamina -= 15; }}
+  ]
+},
+{
+  description: 'Один из выживших показывает признаки заражения',
+  actions: [
+    { text: 'Изолировать его', effect: s => { s.health += 10; s.stamina -= 20; }},
+    { text: 'Попытаться вылечить', effect: s => { s.health -= 30; s.hunger += 20; }}
+  ]
+},
+{
+  description: 'Можно создать защитную ловушку из подручных средств',
+  actions: [
+    { text: 'Строить ловушку', effect: s => { s.stamina -= 40; s.health += 15; }},
+    { text: 'Сэкономить силы', effect: s => { s.hunger += 10; s.stamina += 10; }}
+  ]
+},
+{
+  description: 'Обнаружен запертый склад с оружием',
+  actions: [
+    { text: 'Взломать дверь', effect: s => { s.stamina -= 35; s.health += 20; }},
+    { text: 'Искать обходной путь', effect: s => { s.hunger += 20; s.health -= 10; }}
+  ]
+},
+{
+  description: 'Пойман сигнал о выживших в соседнем городе',
+  actions: [
+    { text: 'Отправиться на помощь', effect: s => { s.stamina -= 30; s.health -= 15; }},
+    { text: 'Остаться на месте', effect: s => { s.hunger += 10; s.health += 5; }}
+  ]
+},
+{
+  description: 'У группы начинаются нервные срывы от напряжения',
+  actions: [
+    { text: 'Устроить день отдыха', effect: s => { s.stamina += 20; s.hunger += 25; }},
+    { text: 'Продолжать двигаться', effect: s => { s.health -= 15; s.stamina -= 15; }}
+  ]
+},
+{
+  description: 'Нужно выбрать маршрут через опасную территорию',
+  actions: [
+    { text: 'Идти через лес', effect: s => { s.stamina -= 25; s.hunger += 15; }},
+    { text: 'Идти через город', effect: s => { s.health -= 20; s.stamina -= 10; }}
+  ]
+},
+        ];
+
+        function updateDisplay() {
+            const container = document.getElementById('survivors');
+            container.innerHTML = '';
+            
+            survivors.forEach(survivor => {
+                const div = document.createElement('div');
+                div.className = `survivor ${!survivor.alive ? 'dead' : ''}`;
+                div.innerHTML = `
+                    <h3>${survivor.name}</h3>
+                    <div class="stats">
+                        <span>Здоровье: ${survivor.alive ? survivor.health : 'МЕРТВ'}</span>
+                        <span>Выносливость: ${survivor.alive ? survivor.stamina : '-'}</span>
+                        <span>Голод: ${survivor.alive ? survivor.hunger : '-'}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('day').textContent = day;
+        }
+
+        function applyEffects(action) {
+            survivors.forEach(survivor => {
+                if (survivor.alive) {
+                    action.effect(survivor);
+                    
+                    // Обновляем ограничения характеристик
+                    survivor.health = Math.min(Math.max(survivor.health, 0), 100);
+                    survivor.stamina = Math.min(Math.max(survivor.stamina, 0), 100);
+                    survivor.hunger = Math.min(Math.max(survivor.hunger, 0), 100);
+                    
+                    // Проверяем смерть
+                    if (survivor.health <= 0 || survivor.hunger >= 100) {
+                        survivor.alive = false;
+                    }
+                }
+            });
+        }
+
+        function generateEvent() {
+            const event = events[Math.floor(Math.random() * events.length)];
+            const eventDiv = document.getElementById('event');
+            const actionsDiv = document.getElementById('actions');
+            
+            eventDiv.innerHTML = `<h2>${event.description}</h2>`;
+            actionsDiv.innerHTML = '';
+            
+            event.actions.forEach((action, index) => {
+                const button = document.createElement('button');
+                button.textContent = action.text;
+                button.onclick = () => {
+                    applyEffects(action);
+                    day++;
+                    checkGameOver();
+                    generateEvent();
+                    updateDisplay();
+                };
+                actionsDiv.appendChild(button);
+            });
+        }
+
+        function checkGameOver() {
+            const allDead = survivors.every(s => !s.alive);
+            if (allDead) {
+                alert('Все выжившие погибли! Игра окончена!');
+                location.reload();
+            }
+            else if (day >= 100) {
+                alert('Вы пережили 100 дней! Победа!');
+                location.reload();
+            }
+        }
+
+        // Инициализация игры
+        updateDisplay();
+        generateEvent();
+    </script>
+</body>
+</html>
